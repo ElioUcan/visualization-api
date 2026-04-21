@@ -7,6 +7,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+PRIMARY_KEYS = {
+    "accounts": "account_id",
+    "branches": "branch_id",
+    "cards": "card_id",
+    "customers": "customer_id",
+    "loans": "loan_id",
+    "merchants": "merchant_id",
+}
+
+FOREIGN_KEYS = {
+    "accounts": [("customer_id", "customers", "customer_id")],
+    "cards": [("account_id", "accounts", "account_id")],
+    "loans": [("customer_id", "customers", "customer_id")],
+}
+
 def required(name: str) -> str:
     v = os.getenv(name)
     if v is None or v.strip() == "":
@@ -26,7 +41,14 @@ def conn_params() -> dict:
         "user": required("DB_USER"),
         "password": optional("DB_PASSWORD", ""),
     }
-    
+
+def constraint_exists(cursor: Cursor, constraint_name: str) -> bool:
+    cursor.execute(
+        "SELECT 1 FROM pg_constraint WHERE conname = %s",
+        (constraint_name,),
+    )
+    return cursor.fetchone() is not None
+
 def create_table_from_csv(csv_file: str, table_name: str, conn: Connection, cursor: Cursor):
     try:
         with open(csv_file, 'r', encoding='utf-8', newline='') as f:
@@ -36,6 +58,19 @@ def create_table_from_csv(csv_file: str, table_name: str, conn: Connection, curs
         columns = ', '.join([f"{h} TEXT" for h in headers])
         query = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns})"
         cursor.execute(query)
+
+        if PRIMARY_KEYS.get(table_name) in headers:
+            constraint_name = f"{table_name}_pkey"
+            if not constraint_exists(cursor, constraint_name):
+                query = f"ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} PRIMARY KEY ({PRIMARY_KEYS[table_name]})"
+                cursor.execute(query)
+
+        for column_name, reference_table, reference_column in FOREIGN_KEYS.get(table_name, []):
+            if column_name in headers:
+                constraint_name = f"{table_name}_{column_name}_fkey"
+                if not constraint_exists(cursor, constraint_name):
+                    query = f"ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} FOREIGN KEY ({column_name}) REFERENCES {reference_table} ({reference_column})"
+                    cursor.execute(query)
         
         conn.commit()
         print(f"  Successfully created table {table_name} from {csv_file}")
@@ -68,10 +103,20 @@ def main():
     cursor = conn.cursor()
     
     data_folder = Path(__file__).parent.parent / "data"
-    for data in data_folder.glob("*.csv"):
-        table_name = data.stem
-        
+    data_files = {data.stem: data for data in data_folder.glob("*.csv")}
+    table_order = ["customers", "branches", "merchants", "accounts", "cards", "loans"]
+    table_order.extend(sorted(table_name for table_name in data_files if table_name not in table_order))
+
+    for table_name in table_order:
+        data = data_files.get(table_name)
+        if data is None:
+            continue
         create_table_from_csv(str(data), table_name, conn, cursor)
+
+    for table_name in table_order:
+        data = data_files.get(table_name)
+        if data is None:
+            continue
         csv_data_to_db(str(data), table_name, conn, cursor)
             
     print("Done.")
