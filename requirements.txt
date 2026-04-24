@@ -1,3 +1,5 @@
 psycopg[binary]>=3.1
-
 python-dotenv>=1.0
+streamlit>=1.35
+plotly>=5.22
+pandas>=2.0
