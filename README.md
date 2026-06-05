@@ -1,97 +1,40 @@
-# VisualizationAPI
-Josue David Chan Negroe
-Nahum Francisco Massa Mandujano
-Elio Eduardo Ucan Zapata
+# Financial KPI Dashboard
 
-Loads CSV data files into a PostgreSQL database and provides an interactive financial KPI dashboard built with Streamlit and Plotly.
+## 🛠️ Technologies
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
 
-## Requirements
+## ✨ Features
+- 5 interactive financial KPI charts: Total Transaction Volume, Spending Distribution, Average Transaction Value, Loan Exposure treemap, and Weighted Average Interest Rate
+- CSV-to-PostgreSQL loader that creates tables, adds primary keys, and inserts rows in dependency order
+- Loan classification by amount: Personal (< $25K), Auto ($25K–$100K), Mortgage (> $100K)
+- Relational banking dataset: accounts, branches, cards, customers, loans, and merchants
 
-- Python 3.10+
-- PostgreSQL (for the data loader)
+## 🎯 Uses
+Collaborative financial dashboard exploring a synthetic banking dataset with KPI visualizations. Built as a university group project to demonstrate data loading, relational data modeling, and interactive business intelligence charts.
 
-Install dependencies:
+## 🔧 Process
+The `load_csv_to_db.py` script loads six CSV files into PostgreSQL, inferring table schemas from headers and adding foreign-key relationships in the correct dependency order. The Streamlit dashboard (`dashboard/app.py`) queries the database and builds Plotly charts for each KPI. The two components are decoupled — run the loader once, then the dashboard independently.
+
+## 💡 Learnings
+- Designing KPI metrics from raw banking data requires understanding the domain: loan classification by amount, weighted interest rates, and merchant category inference
+- Treemaps communicate hierarchical financial exposure (loan type → interest rate tier) more effectively than flat bar charts
+- Decoupling the data loader from the dashboard makes it easy to refresh data without restarting the UI
+
+## ▶️ Running the project
 
 ```bash
 pip install -r requirements.txt
-```
 
-## Project Structure
+# Load data into PostgreSQL (once)
+cp .env.example .env  # fill in DB credentials
+python scripts/load_csv_to_db.py
 
-```
-VisualizationAPI/
-├── data/               # Source CSV datasets
-│   ├── accounts.csv
-│   ├── branches.csv
-│   ├── cards.csv
-│   ├── customers.csv
-│   ├── loans.csv
-│   └── merchants.csv
-├── dashboard/
-│   ├── app.py          # Streamlit dashboard entry point
-│   └── charts.py       # Plotly chart builder functions
-├── scripts/
-│   └── load_csv_to_db.py  # CSV → PostgreSQL loader
-└── requirements.txt
-```
-
-## Dashboard
-
-The dashboard visualizes five financial KPIs using different chart types:
-
-| KPI | Chart |
-|-----|-------|
-| Total Transaction Volume (TTV) | Vertical bar chart — total balance by account type |
-| Spending Distribution by Merchant Category | Donut chart — merchant network by inferred category |
-| Average Transaction Value (ATV) by Account Type | Horizontal bar chart — mean balance per account type |
-| Total Active Loan Exposure | Treemap — loan exposure by type and interest rate tier |
-| Weighted Average Interest Rate by Loan Type | Vertical bar chart — portfolio-weighted rate per loan type |
-
-Loan types are classified by amount: **Personal** (< $25k), **Auto** ($25k–$100k), **Mortgage** (> $100k).
-
-![Financial KPI Dashboard](docs/dashboard_preview.png)
-
-### Run the dashboard
-
-```bash
+# Start the dashboard
 streamlit run dashboard/app.py
 ```
 
-Then open http://localhost:8501 in your browser.
-
-## Database Loader
-
-### Configuration
-
-Copy `.env.example` to `.env` and fill in your database credentials:
-
-```bash
-cp .env.example .env
-```
-
-| Variable      | Description       | Default     |
-|---------------|-------------------|-------------|
-| `DB_HOST`     | PostgreSQL host   | `localhost` |
-| `DB_PORT`     | PostgreSQL port   | `5432`      |
-| `DB_NAME`     | Database name     | required    |
-| `DB_USER`     | Database user     | required    |
-| `DB_PASSWORD` | Database password | _(empty)_   |
-
-### Data relationships
-
-- `accounts.customer_id → customers.customer_id`
-- `cards.account_id → accounts.account_id`
-- `loans.customer_id → customers.customer_id`
-
-### Run the loader
-
-```bash
-python scripts/load_csv_to_db.py
-```
-
-The script will:
-
-1. Connect to the database using the `.env` credentials.
-2. Create or extend tables based on the CSV headers.
-3. Add primary keys and supported foreign-key relationships.
-4. Insert all rows in dependency order.
+Open **http://localhost:8501** in your browser.
